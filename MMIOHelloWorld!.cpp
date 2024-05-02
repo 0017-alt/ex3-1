@@ -7,6 +7,9 @@
 #include "whvp.h"
 
 #define PAGE_SIZE 0x1000
+#define ROW_SIZE 4
+#define MAX_ROW 100
+#define disp_str "Helloworld!"
 
 uint8_t* allocateMemory(const uint32_t size) {
     LPVOID mem = VirtualAlloc(NULL, size, MEM_RESERVE, PAGE_READWRITE);
@@ -247,21 +250,22 @@ int main() {
         addr = 0x500c;
         // Note that these addresses are mapped to virtual addresses 0x10000000 through 0x10000fff
 
-        // Basic MMIO
+        // Basic MMIO and Wrie to memory
         emit(ram, "\xbf\x00\x00\x00\xe0");             // mov    edi, 0xe0000000
         emit(ram, "\x8b\x07");                         // mov    eax, [edi]
-        emit(ram, "\x83\xc7\x04");                     // add    edi, 4
-        emit(ram, "\x8b\x1f");                         // mov    ebx, [edi]
-        emit(ram, "\x83\xc7\x04");                     // add    edi, 4
-        emit(ram, "\x8b\x0f");                         // mov    ecx, [edi]
-
-        // print
         emit(ram, "\xbf\x00\x00\x00\x10");             // mov    edi, 0x10000000
         emit(ram, "\x89\x07");                         // mov    eax, [edi]
-        emit(ram, "\x83\xc7\x04");                     // add    edi, 4
-        emit(ram, "\x89\x1f");                         // mov    ebx, [edi]
-        emit(ram, "\x83\xc7\x04");                     // add    edi, 4
-        emit(ram, "\x89\x0f");                         // mov    ecx, [edi]
+
+        emit(ram, "\xbf\x04\x00\x00\xe0");             // mov    edi, 0xe0000004
+        emit(ram, "\x8b\x07");                         // mov    eax, [edi]
+        emit(ram, "\xbf\x04\x00\x00\x10");             // mov    edi, 0x10000004
+        emit(ram, "\x89\x07");                         // mov    eax, [edi]
+
+        emit(ram, "\xbf\x08\x00\x00\xe0");             // mov    edi, 0xe0000008
+        emit(ram, "\x8b\x07");                         // mov    eax, [edi]
+        emit(ram, "\xbf\x08\x00\x00\x10");             // mov    edi, 0x10000008
+        emit(ram, "\x89\x07");                         // mov    eax, [edi]
+
         emit(ram, "\xf4");                             // hlt
 
         // -------------------------------
@@ -417,6 +421,27 @@ int main() {
     printf("\n");
 
     // ----- MMIO -------------------------------------------------------------------------------------------------------------
+    size_t length = (strlen(disp_str) % 4 == 0) ? strlen(disp_str) + 1 : strlen(disp_str);
+
+    unsigned char* byte_array = (unsigned char*)malloc(length);
+
+    for (size_t i = 0; i < length; i++) {
+        byte_array[i] = (unsigned char)disp_str[i];
+    }
+
+    size_t row_count = (length + ROW_SIZE - 1) / ROW_SIZE;
+    unsigned char byte_matrix[MAX_ROW][6];
+    for (size_t i = 0; i < row_count; i++) {
+        byte_matrix[i][0] = '\xb8';
+        for (size_t j = 0; j < ROW_SIZE; j++) {
+            if (i * ROW_SIZE + j < length) {
+                byte_matrix[i][j + 1] = byte_array[i * ROW_SIZE + j];
+            }
+            else {
+                byte_matrix[i][j + 1] = '\x00';
+            }
+        }
+    }
 
     printf("Testing MMIO\n\n");
 
