@@ -722,7 +722,6 @@ int execute_binary(char *file_name) {
         printf("1) VCPU failed to run\n");
     }
 
-    int i = 0;
     while (true) {
         vcpuStatus = vcpu->Run();
         if (WHVVCPUS_SUCCESS != vcpuStatus) {
@@ -737,10 +736,8 @@ int execute_binary(char *file_name) {
             WHV_REGISTER_VALUE val[sizeof(reg) / sizeof(reg[0])];
             vcpuStatus = vcpu->GetRegisters(reg, sizeof(reg) / sizeof(reg[0]), val);
             if (WHVVCPUS_SUCCESS != vcpuStatus) { return vcpuStatus; }
-            val[0].Reg32 = 0x501a + 10*i;
+            val[0].Reg32 += 3;
             vcpuStatus = vcpu->SetRegisters(reg, sizeof(reg) / sizeof(reg[0]), val);
-
-            i += 1;
         }
         else {
             if (!VirtualFree(ram, 0, MEM_RELEASE)) {
